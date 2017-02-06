@@ -12,7 +12,7 @@
 
 %:- debug(monitor(restart)).
 :- debug(monitor(_)).
-:- debug_message_context(+time).
+:- debug_message_context(+time('%D %T.%3f')).
 
 :- initialization swimon.
 
