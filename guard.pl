@@ -44,29 +44,36 @@
 
 :- setting(interval, number, 300, "Checking interval in seconds").
 
-%:- debug(monitor(restart)).
-:- debug(monitor(_)).
+%:- debug(guard(restart)).
+:- debug(guard(_)).
 :- debug_message_context(+time('%D %T.%3f')).
 
 :- initialization(swiguard, main).
 
-swiguard :-
-	monitor_loop.
+defaults(_{ scheme:http,		% URI scheme
+	    host:localhost,		% Service host
+	    retry:1			% # Retries
+	  }).
 
-monitor_loop :-
+swiguard :-
+	guard_loop.
+
+guard_loop :-
 	repeat,
-	catch(monitor, E, print_message(error, E)),
+	catch(guard, E, print_message(error, E)),
 	setting(interval, Time),
 	sleep(Time),
 	fail.
 
-monitor :-
-	forall(service(Service),
-	       catch(monitor(Service), E, print_message(error, E))).
+guard :-
+	defaults(Defaults),
+	forall(user:service(Service),
+	       catch(guard(Defaults.put(Service)), E, print_message(error, E))).
 
-monitor(Service) :-
+guard(Service) :-
+	between(0, Service.retry, _),
 	alive(Service), !.
-monitor(Service) :-
+guard(Service) :-
 	restart(Service).
 
 %%	alive(+Service) is semidet.
@@ -86,32 +93,21 @@ alive(Service) :-
 	),
 	get_time(T1),
 	T is T1-T0,
-	debug(monitor(test), '~w: alive (~3f sec; ~p)', [Service.name, T, Reply]).
+	debug(guard(test), '~w: alive (~3f sec; ~p)', [Service.name, T, Reply]).
 
 restart(Service) :-
 	Job = Service.get(service), !,
-	debug(monitor(restart), 'Restarting ~w ...', [Service.name]),
+	debug(guard(restart), 'Restarting ~w ...', [Service.name]),
 	(   debugging(dryrun)
 	->  true
 	;   process_create('/usr/bin/service', [Job, restart], [])
 	).
 
-%%	service(?Service) is nondet.
+%!  service_url(+Dict, -URI) is det.
 %
-%	Describe services that are being monitored.
+%   URL is the URL at which Service lives.
 
-service(_{ name:swish,
-	   port:80,
-	   host:'swish.swi-prolog.org',
-	   test:test_pengines,
-	   timeout:20,
-	   service:swish
-	 }).
-
-
-%%	uri_dict(+URI, +Dict) :-
-
-uri_dict(URI, Dict) :-
+service_url(Dict, URI) :-
 	var(URI),
 	_{scheme:Scheme, authority:Authority,
 	  path:Path, search:Search, fragment:Fragment} >:< Dict,
@@ -131,13 +127,6 @@ fill_search(Search, Dict) :-
 	var(Search),
 	uri_query_components(Search, Dict.get(query)), !.
 fill_search(_, _).
-
-%%	service_url(+Service, -URL) is det.
-%
-%	URL is the URL at which Service lives.
-
-service_url(Service, URL) :-
-	uri_dict(URL, _{scheme:http,host:localhost}.put(Service)).
 
 
 		 /*******************************
