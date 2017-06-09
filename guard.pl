@@ -74,6 +74,7 @@ guard(Service) :-
 	between(0, Service.retry, _),
 	alive(Service), !.
 guard(Service) :-
+	ignore(catch(stacks(Service), E, print_message(error, E))),
 	restart(Service).
 
 %%	alive(+Service) is semidet.
@@ -102,6 +103,27 @@ restart(Service) :-
 	->  true
 	;   process_create('/usr/bin/service', [Job, restart], [])
 	).
+
+stacks(Service) :-
+	Job = Service.get(service),
+	service_pid(Job, PID), !,
+	format(atom(OutOption), '--out=~w.~w.stack', [Job, PID]),
+	process_create(path('swipl-bt'),
+		       [ '--thread=all', '-C', OutOption, PID ],
+		       []).
+stacks(_).
+
+service_pid(Job, PID) :-
+	setup_call_cleanup(
+	    process_create('/usr/bin/service', [Job, status],
+			   [ stdout(pipe(Out))
+			   ]),
+	    read_string(Out, _, Data),
+	    close(Out)),
+	split_string(Data, " ", " ", List),
+	append(_, [process,PIDS|_], List),
+	number_string(PID, PIDS).
+
 
 %!  service_url(+Dict, -URI) is det.
 %
