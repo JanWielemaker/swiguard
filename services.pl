@@ -23,5 +23,6 @@ service(_{ name:swish,
 %	   host:'swish.swi-prolog.org',
 	   test:test_pengines,
 	   timeout:20,
+           backtrace:'/usr/bin/swipl-bt',
 	   service:swish
 	 }).

@@ -106,9 +106,10 @@ restart(Service) :-
 
 stacks(Service) :-
 	Job = Service.get(service),
+	SWIPLBT = Service.get(backtrace),
 	service_pid(Job, PID), !,
 	format(atom(OutOption), '--out=~w.~w.stack', [Job, PID]),
-	process_create(path('swipl-bt'),
+	process_create(SWIPLBT,
 		       [ '--thread=all', '-C', OutOption, PID ],
 		       []).
 stacks(_).
