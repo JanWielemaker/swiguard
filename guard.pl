@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, VU University Amsterdam
+    Copyright (c)  2019, VU University Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -101,7 +102,7 @@ restart(Service) :-
 	debug(guard(restart), 'Restarting ~w ...', [Service.name]),
 	(   debugging(dryrun)
 	->  true
-	;   process_create('/usr/bin/service', [Job, restart], [])
+	;   process_create('/bin/systemctl', [restart, Job], [])
 	).
 
 stacks(Service) :-
@@ -116,13 +117,12 @@ stacks(_).
 
 service_pid(Job, PID) :-
 	setup_call_cleanup(
-	    process_create('/usr/bin/service', [Job, status],
+	    process_create('/bin/systemctl', [show, '-p', 'MainPID', Job],
 			   [ stdout(pipe(Out))
 			   ]),
 	    read_string(Out, _, Data),
 	    close(Out)),
-	split_string(Data, " ", " ", List),
-	append(_, [process,PIDS|_], List),
+	split_string(Data, "=", " \t\r\n", ["MainPID", PIDS]),
 	number_string(PID, PIDS).
 
 
