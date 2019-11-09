@@ -1,0 +1,18 @@
+# swi-prolog - SWI-Prolog service monitor
+
+[Unit]
+Description=SWI service guard
+
+[Service]
+UMask=022
+Environment=LANG=en_US.utf8
+Restart=on-failure
+DefaultLimitCORE=infinity
+StartLimitInterval=60
+StartLimitBurst=5
+WorkingDirectory=/home/swish/src/swiguard
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/home/swish/bin/swipl services.pl guard.pl
+
+[Install]
+WantedBy=multi-user.target
